@@ -1,13 +1,14 @@
-const express = require('express');
-const http = require('http');
-const socketIO = require('socket.io');
-const { Client } = require('pg');
+const express = require("express");
+const http = require("http");
+const socketIO = require("socket.io");
+const { Client } = require("pg");
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-const DATABASE_URL = 'postgres://collins_user:SpkuLYpAsCW0WdJ0niHg0ZrRKqFtxMs5@dpg-cln48jhr6k8c73aauu1g-a.oregon-postgres.render.com/collins';
+const DATABASE_URL =
+  "postgres://collins_user:SpkuLYpAsCW0WdJ0niHg0ZrRKqFtxMs5@dpg-cln48jhr6k8c73aauu1g-a.oregon-postgres.render.com/collins";
 const maintenanceStatus = { active: false, startTime: null, stopTime: null };
 
 const pgClient = new Client({
@@ -19,21 +20,21 @@ pgClient.connect();
 
 app.use(express.static(__dirname));
 
-io.on('connection', (socket) => {
-  console.log('\x1b[32m%s\x1b[0m', 'User connected');
+io.on("connection", (socket) => {
+  console.log("\x1b[32m%s\x1b[0m", "User connected");
 
-  socket.emit('maintenanceStatus', maintenanceStatus);
+  socket.emit("maintenanceStatus", maintenanceStatus);
 
-  socket.on('updateMaintenanceStatus', (newStatus) => {
+  socket.on("updateMaintenanceStatus", (newStatus) => {
     maintenanceStatus.active = newStatus.active;
     maintenanceStatus.startTime = newStatus.startTime;
     maintenanceStatus.stopTime = newStatus.stopTime;
 
-    io.emit('maintenanceStatus', maintenanceStatus);
+    io.emit("maintenanceStatus", maintenanceStatus);
   });
 
-  socket.on('disconnect', () => {
-    console.log('\x1b[33m%s\x1b[0m', 'User disconnected');
+  socket.on("disconnect", () => {
+    console.log("\x1b[33m%s\x1b[0m", "User disconnected");
   });
 });
 
