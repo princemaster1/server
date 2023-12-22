@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Comments</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+
+    #comments {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    #comments li {
+      background-color: #fff;
+      margin: 10px;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    #commentForm {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    #commentForm input,
+    #commentForm textarea,
+    #commentForm button,
+    #commentForm label {
+      display: block;
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    #commentForm button {
+      background-color: #3498db;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .delete-button {
+      display: none;
+      cursor: pointer;
+      background-color: #f44336;
+      color: #fff;
+      border-radius: 8px;
+    }
+
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1;
+    }
+
+    .modal-content {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      animation: zoomIn 0.5s ease-out;
+    }
+
+    /* Modal Animation */
+    @keyframes zoomIn {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* Modal Form Styles */
+    .modal h2 {
+      color: #333;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+
+    .modal label {
+      display: block;
+      margin-bottom: 10px;
+      color: #555;
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .modal button {
+      background-color: #4CAF50;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .modal button:hover {
+      background-color: #45a049;
+    }
+
+    /* Close button styles (optional) */
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #888;
+    }
+
+    .modal-close:hover {
+      color: #555;
+    }
+
+
+
+        #commentForm {
+          margin-bottom: 20px;
+        }
+
+        .comment {
+          background-color: #f8f8f8;
+          padding: 10px;
+          border-radius: 5px;
+          margin-bottom: 10px;
+        }
+
+        .comment .user-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 5px;
+        }
+
+        .comment .username {
+          color: grey;
+          font-weight: bold;
+        }
+
+        .comment .time {
+          color: grey;
+          font-size: 12px;
+        }
+
+    .verified-badge {
+      width: 16px; /* Adjust the width as needed */
+      height: 16px; /* Adjust the height as needed */
+      margin-left: 5px; /* Adjust the margin as needed */
+      vertical-align: middle;
+    }
+      </style>
+    </head>
+
+    <body>
+
+      <ul id="comments"></ul>
+
+      <form id="commentForm">
+        <textarea id="message" placeholder="Type your comment" required></textarea>
+        <button type="submit">Post Comment</button>
+      </form>
+
+      <div id="commentModal" class="modal">
+        <div class="modal-content">
+          <h2>Enter Your:</h2>
+          <label for="modalName">nickname</label>
+          <input type="text" placeholder"username" id="modalName" required>
+          <label for="modalEmail">email</label>
+          <input type="email" id="modalEmail"required>
+          <button id="submitModalBtn">Submit</button>
+        </div>
+      </div>
+
+      <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+      <script src="/socket.io/socket.io.js"></script>
+      <script>
+
+        const socket = io('https://prince-comments-princemaster400.koyeb.app/');
+        const commentForm = document.getElementById('commentForm');
+        const messageInput = document.getElementById('message');
+        const commentModal = document.getElementById('commentModal');
+        const modalNameInput = document.getElementById('modalName');
+        const modalEmailInput = document.getElementById('modalEmail');
+        const submitModalBtn = document.getElementById('submitModalBtn');
+
+        const savedName = localStorage.getItem('username');
+        const savedEmail = localStorage.getItem('email');
+        if (savedName && savedEmail) {
+          modalNameInput.value = savedName;
+          modalEmailInput.value = savedEmail;
+        }
+
+        socket.on('loadComments', (comments) => {
+          const commentsList = document.getElementById('comments');
+
+          const sortedComments = comments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+          commentsList.innerHTML = sortedComments.map(comment => formatComment(comment)).join('');
+        });
+
+        socket.on('newComment', (data) => {
+          const commentsList = document.getElementById('comments');
+          const commentItem = document.createElement('li');
+          commentItem.innerHTML = formatComment(data);
+          commentsList.insertBefore(commentItem, commentsList.firstChild);
+        });
+
+        socket.on('deleteComment', (commentId) => {
+          const commentItem = document.getElementById(commentId);
+          if (commentItem) {
+            commentItem.remove();
+          }
+        });
+
+        socket.on('showDeleteButton', (commentId) => {
+          const deleteButton = document.querySelector(`[data-comment-id="${commentId}"]`);
+          if (deleteButton) {
+            deleteButton.style.display = 'inline-block';
+          }
+        });
+
+        commentForm.addEventListener('submit', (event) => {
+          event.preventDefault();
+          const name = modalNameInput.value.trim();
+          const email = modalEmailInput.value.trim();
+          const message = messageInput.value.trim();
+
+          if (!name || !email || !message) {
+            commentModal.style.display = 'flex';
+          } else {
+            socket.emit('newComment', { name, email, message });
+            messageInput.value = '';
+            commentModal.style.display = 'none';
+          }
+        });
+
+        function formatComment(comment) {
+          const deleteButton = comment.isSender ? `<button class="delete-button" data-comment-id="${comment.id}" onclick="deleteComment('${comment.id}')">Delete</button>` : '';
+          const time = new Date(comment.timestamp).toLocaleString();
+
+          const verifiedBadge = comment.email === 'princemaster400@gmail.com' ? '<img src="https://princewebsite.princemaster1.repl.co/princeimg/verified.png" alt="Verified Badge" class="verified-badge">' : '';
+
+          const formattedMessage = linkify(comment.message).replace(/\n/g, '<br>');
+
+          const backgroundColor = comment.isSender ? 'background-color: #e6f7ff;' : '';
+
+          return `
+            <li id="${comment.id}" class="comment" style="${backgroundColor}">
+              <div class="user-info">
+                <span class="username">${comment.name} ${verifiedBadge}</span>
+                <span class="time">${time}</span>
+              </div>
+              <div class="comment-message" id="commentMessage_${comment.id}">
+                ${formattedMessage}
+              </div>
+              ${deleteButton}
+            </li>
+          `;
+        }
+
+        function deleteComment(commentId) {
+          socket.emit('deleteComment', commentId);
+        }
+
+        commentForm.addEventListener('submit', (event) => {
+          if (messageInput.value.trim() !== '') {
+            event.preventDefault();
+            commentModal.style.display = 'flex';
+          }
+        });
+
+        submitModalBtn.addEventListener('click', () => {
+          const name = modalNameInput.value.trim();
+          const email = modalEmailInput.value.trim();
+
+          if (name && email) {
+            localStorage.setItem('username', name);
+            localStorage.setItem('email', email);
+
+            socket.emit('newComment', { name, email, message: messageInput.value.trim() });
+            messageInput.value = '';
+            commentModal.style.display = 'none';
+          }
+        });
+
+        function linkify(message) {
+          const urlRegex = /(https?:\/\/[^\s]+)/g;
+          return message.replace(urlRegex, url => `<a href="${url}" target="_blank">${url}</a>`);
+        }
+
+
+
+      </script>
+
+    </body>
+
+    </html>
